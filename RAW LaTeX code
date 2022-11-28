@@ -1,0 +1,377 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb}
+\usepackage{amsmath}
+%\usepackage{graphicx}
+\usepackage[lofdepth,lotdepth]{subfig}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage[rightcaption]{sidecap}
+\usepackage{amsmath}
+\geometry{margin=1in}
+\usepackage{mwe}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+
+\begin{document}
+\title{Investigating phase transitions in ferromagnets using a 2-dimensional Ising grid with periodic boundary conditions and nearest-neighbour interactions}
+\maketitle
+
+\section{Abstract}
+By analysing the Ising model of dipoles with two well-known Monte Carlo simulations and by varying the size of the model, it has been shown that abrupt changes happen in the thermodynamic quantities about the critical temperature.
+
+For the metropolis algorithm, it was determined that, although significantly less computationally complex, it is still a good contender to study the short-range critical behaviour of any system. Whereas the Wang-Landau algorithm gives much deeper peak into a system undergoing phase transitions, but at the cost of running into "infinities" during calculations.
+
+Some parameter values have also been given to best optimize both the Metropolis and Wang-Landau sampling methods.
+
+It has thus been concluded that that Ising model, with help from both the Metropolis and Wang-Landau sampling method, is an adequate proxy into the critical behaviours of ferromagnets undergoing phase transitions outside the reach of external magnetic fields.
+
+\section{Introduction - Ising model}
+
+The Ising model (also known as the Lenz-Ising model) is a 2-dimensional \(L \times L\) system of dipoles, which can either be in spin-up or spin-down configurations. This model has shown particular effectiveness in studying the behaviour of ferromagnets and anti-ferromagnets undergoing phase transitions, which occur at certain critical temperatures. These critical temperatures can vary depending on the dimension of the model and the "lattice arrangement" of the grid. The Ising model is also typically considered inside a thermal environment, which acts as a temperature bath, from which the system can obtain thermal energy.
+%\begin{figure}[h]
+%    \centering
+%    \includegraphics[width=0.4\textwidth]{System in temperature bath.png}
+%    \caption{Caption}
+%    \label{fig:my_label}
+%\end{figure}
+
+For this investigation, the system of dipoles was also considered to be "outside" the effects of any external magnetic field (\(B_{\textrm{ext}} = 0\)), meaning that the magnetic interactions would be wholly constrained to inter-dipole interactions. Furthermore, the only magnetic interactions that were deemed "substantial" (non-negligible) for the system, were between the dipole in question and its four nearest neighbours. In order to enforce that every dipole always has four nearest neighbours, periodic boundary conditions were established. This means that the face of the Ising grid formed the outer surface of a torus, such that any dipole on any of the boundary positions interacts with dipoles on the opposite boundaries (see below).
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{Combination.png}
+    \caption{(a) An example of a randomly generated \(4\times 4\) Ising grid. (b) Visual representation of nearest-neighbour interactions of i,j-th dipole. (c) Visual representation of nearest-neighbour interactions across the boundaries, assuming periodic boundary conditions}
+    \label{fig:combination}
+\end{figure}
+
+\section{Monte Carlo Algorithms}
+Although - for the 2-dimensional case - Onsager analytically solved for the critical temperature of the Ising model (as \(N\rightarrow\infty , T_c = 2.27\) \( \frac{\epsilon}{\textrm{k}} \ast\)), finding an analytical solution for the partition function, arguably one of the most important values in calculating thermodynamic quantities, proves to be significantly more challenging. Looking at how the partition function is calculated:
+
+\begin{equation}
+    Z(T) := \sum_{\textrm{states}} e^{-\beta E_{s}} \equiv \sum_{\textrm{energies}} g(E)e^{-\beta E}; \beta = \frac{1}{kT}
+    \label{eqn:partition}
+\end{equation}
+It should be noted that this is because the total number of states follows the power law: \(\textrm{\#states} = 2^{L\times L}\) for the 2-dimensional case, which - even for a "small" value of \(L = 8\) - corresponds to \(2^{64} \sim 10^{19}\) total states. For "large" L, the partition function becomes near-impossible to calculate exactly, and a simple "brute-force" solution will not be enough to solve for all states and their behaviours.\newline
+\newline
+\(\ast\) \textbf{Note:} In the case of the Ising model, the temperature is typically given units of energy, with dimensions \(\epsilon\) per Boltzmann constant:  \([T] = [\frac{\epsilon}{\textrm{k}}]\) (so as to simplify the calculations by setting k = 1 and not then having to deal with orders of magnitude when exponentiating \(\beta\))\newline
+
+Instead, analysis of such systems rely upon Monte Carlo algorithms. These algorithms make use of clever sampling methods rooted in statistical theory, so as to statistically determine "representative samples" (samples that have a high - or low - probability of occurrence) to approximate the "actual" behaviour of the system to high precision. In more rigorous terms, they make use of the calculated representative samples as an estimator of the true configurations of states and - by interpolation - the behaviour of the system as a whole.
+
+The two Monte Carlo methods that this investigation made use of were the Metropolis method and the Wang-Landau sampling method. The metropolis algorithm attempts to average over representative states to estimate thermodynamic quantities to within some error, thus bypassing the need for calculating the partition function. The Wang-Landau sampling method, on the other hand, attempts to find the density of states (for the discrete case studied here, the density of states is also called the degeneracies of states), and then determine the partition function according to equation \ref{eqn:partition}.
+
+\subsection{Metropolis Method}
+\subsubsection{Background}
+The metropolis method is an example of a Markov Chain Monte Carlo (MCMC) method, meaning that the system evolves over time from previous iterations. The decision to accept or reject any proposed changes to the system are based on some probability factor, which acts in favour of energetically favourable configurations (states of lower energy) and to the detriment of energetically unfavourable configurations (states of higher energy). Since the system of dipoles is not under the effects of an external magnetic field, the only energy contribution is from the temperature bath (in the form of thermal energy), which means that the probability factor is just the Boltzmann factor \(e^{-E / kT}\).
+
+The purpose of the metropolis method is to generate an ensemble of representative states, with the intention of estimating the "true" behaviour of any system without having to perform a calculation over all its possible configurations. The algorithm needs to be applied separately for each value of temperature, due to the temperature-dependence in the Boltzmann factor.
+
+For a substantially large subset \(N\) of the total states (the set of representative samples), the sample average becomes a remarkably accurate numerical approximation to the true analytical mean of the set of total states. By means of a standardised computation: on one single computer, an \(L=4\) grid's average energy per dipole was plotted with \(N=\) 10, 100, 250, 500, 800, and 1000 representative samples per temperature value respectively. The results for the 10, 250, 500, and 1000 case are demonstrated below along with the time taken for the computation to run.
+
+\begin{figure}[h]
+\centering
+\subfloat[Subfigure 1 list of figures text][N = 10, time taken = 11.63s]{
+\includegraphics[width=0.4\textwidth]{N=10, time=11.63s.png}
+\label{fig:subfig1}}
+%\qquad
+\subfloat[Subfigure 2 list of figures text][N = 250, time taken: 264.29s]{
+\includegraphics[width=0.4\textwidth]{N=250, time=264.29s.png}
+\label{fig:subfig2}}
+\qquad
+\subfloat[Subfigure 3 list of figures text][N = 500, time taken = 519.42s]{
+\includegraphics[width=0.4\textwidth]{N=500, time=519.42s.png}
+\label{fig:subfig3}}
+%\qquad
+\subfloat[Subfigure 4 list of figures text][N = 1000, time taken = 1074.17s]{
+\includegraphics[width=0.4\textwidth]{N=1000, time=1074.17s.png}
+\label{fig:subfig4}}
+\caption{Above are four of the six plots of average energy per dipole as a function of temperature, only differing in the amount of representative samples \(N\) they used in their Type A error evaluation.}
+\label{fig:determining n}
+\end{figure}
+
+
+\subsubsection{Applying the method}
+To start off, generate an \(L\times L\) Ising grid. Make sure that it consists of a random distribution of spin-up and spin-down dipoles, unless the temperature of the environment is low (\(T \lesssim 1.5 \, \frac{\epsilon}{\textrm{k}}\)) in order to avoid "clumping" of spins in the representative samples. Even though this clumping is indicative of what tends to happen in "real" ferromagnets, it will wash out the trends in the relevant thermodynamic quantities (think, for example, of the total magnetisation: It is expected that for low energies the dipoles will tend to align their spins, which will lead to a net non-zero magnetisation. If the spins "clump", the total magnetisation contributed by the spin-up clumps tend to cancel the contribution of the spin-down clumps).
+
+Once the Ising grid has been initialised (see the example below of one such a configuration for L = 4), it is time to start the random walk. Randomly select any dipole in the grid and perform a trial spin flip of this dipole \(S(i,j) \rightarrow -S(i,j)\), and keep track of the resulting change in energy that such a flip would introduce, \(\Delta E\). If this resulting change in energy is negative or zero (\(\Delta E \leq 0\)), the system will be in a lower or the same energy state as before (energetically favourable), and therefore the proposed spin-flip is always accepted. If, however, this resulting change in energy is positive (\(\Delta E > 0\)), the system will be in a higher energy state than before (energetically unfavourable), and the probability to accept the spin flip depends on the Boltzmann factor \[P(\textrm{accept}) = e^{-\Delta E / T}\]. The random walk is typically chosen to continue \(100\times L^{2}\) times, to allow every dipole the opportunity to flip roughly 100 times, before the final resultant Ising grid is saved as one of the representative samples. 
+
+Referring back now to \ref{fig:determining n}: The nominal amount of representative samples per T value (so as to perform a Type A evaluation of uncertainty) was chosen to be 800, balancing nicely the obtained precision of the calculated thermodynamic quantities and the computing time taken to run the algorithm.
+
+Pseudo-code of this algorithm follows below.
+
+\subsubsection{Metropolis method pseudo-code}
+
+Initialize Ising Grid of width L\\
+Start with environment at temperature T\\
+\\
+Repeat the following \(100L^{2}\) times:
+
+Repeat the following a few hundred times for Type A uncertainty evaluation per value of T:\\
+
+Choose a random dipole \(S(i,j)\)
+
+Perform a trial flip \(S(i,j) \rightarrow -S(i,j)\)
+
+if \(\Delta E\) of the trial flip \(\leq 0\): Accept the flip
+
+else if \(\Delta E\) of the trial flip \(> 0\): Create a floating point number \(R\) in the range [0, 1) and accept the flip 
+
+only if \(R < e^{-\Delta E / T}\)
+
+Extract relevant thermodynamic quantities E.g. total magnetisation
+
+Re-Initialize Ising Grid\\
+\\
+Change the temperature by some amount \(T \rightarrow T + \Delta T\)\\
+\\
+Plot results once the desired value of T has been reached\\
+
+\subsection{Wang-Landau Sampling}
+\subsubsection{Background}
+The Wang-Landau sampling method is an efficient way to obtain the degeneracies of states \(g(E)\). It mainly relies upon updating some assumption of the "true" degeneracies of states, whilst performing a random walk in the energy space of the system (meaning that it only operates on the physically allowed energies of the system, and that all the non-physical energy states are omitted). 
+
+The main idea of this algorithm is that a modification factor must be used to multiplicatively update the values for the degeneracies of states (initially making "rough" adjustments to these values, and getting finer and finer as the algorithm continues). It is precisely this modification factor that what will ultimately drive the degeneracies of states toward their true values. It should be noted that the numbers involved in the Wang-Landau sampling algorithm blow up extremely quickly (the "rolling values" of degeneracies as the program continues can reach values upwards of 100 orders of magnitude after very few iterations for larger systems) - It is thus strongly recommended to instead make use of logarithms wherever possible, or to find a workaround for exponentiating "large" numbers (Python specifically has trouble if the exponent is a value above \(150\) or below \(-150\) in base \(e\))
+
+What sets this algorithm apart from something like the Metrpololis method, is that the Wang-Landau algorithm does not attempt to find representative states that represent the most probable configurations of the system at any given temperature, but to instead "punish" the most likely energy states in order to get information on the less likely ones. This punishment is done by means of applying an ever-stricter probability factor that works to the detriment of energy states with small degeneracies and works in favour of energy states with very large degeneracies.
+
+It is vitally important to mention that, once the algorithm has finished completely, the determined values of \(g(E)\) will not be final. Instead, they must be divided through by some correction factor \(K\) which will normalize the results. In this case, it is very easily seen that - for the lowest energy state - there are two, and only two, possible configurations corresponding to this energy (this energy state is said to be doubly degenerate): all spin-up or all spin-down dipole configurations. It is thus wise to use this fact to obtain a correction factor from 
+\[K = \frac{g(E_1)}{2}\]
+It is then additionally useful to note that the highest-energy configuration is also only doubly degenerate. Furthermore, this pattern of degeneracy symmetry about the \(E_{\textrm{system}} = 0\) point (which is the energy state with the most degeneracies in the system) is observed for all \(g(E)\). Visually, when the logarithms of the degeneracies are plotted as a function of the allowed energy states, a "logarithmic parabola" emerges, centred about \(E = 0\) (take note of figure \ref{fig:type A non-justification} a bit further down to see this) \\\newline
+\\
+\textbf{Aside: Allowed energy states}\\
+For the 2-dimensional Ising model with L an even number, the physically allowed energy states are
+\begin{equation}
+    E_{\textrm{allowed}} = \{-2L^{2}, -2L^{2}+8, -2L^{2}+12, -2L^{2}+16, \dots , +2L^{2}-12, +2L^{2}-8, +2L^{2}\}
+    \label{eqn:allowed energies}
+\end{equation}
+This follows from the fact that, per the assumption of nearest-neighbour interactions, the interaction energy of the entire system is:
+\begin{equation}
+   U = E_{\textrm{system}} = -\epsilon\sum_{\langle i,j\rangle} s_{i}\cdot s_{j} 
+   \label{eqn:interaction energy}
+\end{equation}
+(The notation \(\langle i,j\rangle\) denotes that this is a sum over all nearest-neighbour pairs, and the convention of \(s = \pm 1\) has been used to differentiate between spin-up (\(s = +1\)) and spin-down (\(s = -1\)) states. Notice, also, the minus sign preceding the sum, which has been introduced to show that spin-aligned states (\(s_{i}\cdot s_{j} = +1\)) have a net-negative contribution to the total interaction energy, whereas spin-anti-aligned states (\(s_{i}\cdot s_{j} = -1\)) have a net-positive contribution to the total interaction energy).
+
+Referring back to equation \ref{eqn:interaction energy}, for any given set of nearest-neighbour interactions, it can be trivially shown (examine any random distribution of central dipole + its four nearest neighbours, and calculate the total interaction energy for such a 5-dipole system from its least energetic state to most energetic state) that the total energy contribution of any one dipole and its four nearest neighbours is contained in the set
+\[E_{\langle i,j\rangle} = \{-4,-2,0,+2,+4\}\]
+
+Now, starting from an Ising grid in a lowest-energy state (all spins aligned), notice that the lowest energy state of the entire system would correspond to \(E_{\textrm{system, lowest}} = -2L^{2}\). Consider now having the opportunity of flipping any one dipole: regardless of which dipole is chosen, the corresponding change in energy from the lowest energy state will always be \(\Delta E = +8\), owing to the fact that flipping one spin affects four interaction energies (from its four nearest neighbours) by \(+2\) (similarly, the corresponding change in energy from the highest energy state will always be \(\Delta E = -8\)). However, if any other dipole were to be flipped after this, the corresponding change in energy will no longer be independent of which dipole is chosen. if any of the first dipole's nearest neighbours are chosen to be flipped next, the corresponding change in energy will only be \(\Delta E = +4\), whereas if any other dipole outside of these four is chosen to be flipped next, the same logic as previously applies and the corresponding change in energy is again \(\Delta E = +8\). Continuing along with this exercise until the highest-energy state has been reached (being all spins anti-aligned), the entire set shown in equation \ref{eqn:allowed energies} will be reproduced.
+
+Note that, for L an odd number, the set in equation \ref{eqn:allowed energies} does not hold. Consider, as an example, a \(3\times 3\) Ising grid with all of the dipoles in spin-anti-aligned states: In order to enforce periodic boundary conditions on such a system (refer back again to image ....), the dipoles on the boundaries would not be spin-anti-aligned to their periodic nearest-neighbours any more, complicating the analysis of the allowed energy states. It is thus that, for simplicity, only L even is considered henceforth.
+
+\subsubsection{Applying the method}
+To begin with, a randomly generated Ising grid is produced and an initial (incorrect) that all degeneracies of states \(g(E) = 1\) for all values of E is applied (since these are the values that are otherwise unknown). After every "step" in energy space, the algorithm updates this incorrect assumption by some modification factor, \(f\). Simultaneously, the algorithm keeps track of every energy state that has been "visited" along the random walk by means of a histogram, and also updates this histogram after every step.
+
+On the Ising grid, much like was the case for the Metropolis algorithm, a random dipole is chosen and a trial flip is performed. The algorithm keeps track of the total interaction energies of the entire system before and after the flip \(E_{1}\) and \(E_{2}\), respectively. Using this information, the corresponding degeneracies \(g(E_{1}) = g_{1}\) and \(g(E_{2}) = g_{2}\) are then divided as \(\frac{g_{1}}{g_{2}}\). The probability factor to accept or reject this proposed spin-flip is then given by 
+\[P(\textrm{accept}) = \textrm{min}\{\frac{g_{1}}{g_{2}}, 1\}\]
+It is then very easy to recognize that the system will tend to only accept spin-flips which correspond to energy states that have not been visited frequently and have thus not been updated frequently.
+
+Once this probability factor has been passed, one of two updates must be made to the set of degeneracies and to the histogram of visits: if the proposed spin-flip is accepted, the updates that must be made are
+\[\ln\left( g(E_{2})\right) \rightarrow \ln\left( g(E_{2})\right) + \ln\left(f\right); H(E_{2}) \rightarrow H(E_{2}) + 1\]
+and if the proposed spin-flip was rejected, the updates are
+\[\ln\left( g(E_{1})\right) \rightarrow \ln\left( g(E_{1})\right) + \ln\left(f\right); H(E_{1}) \rightarrow H(E_{1}) + 1\]
+
+In addition to this, the modification factor \(f\) also needs to be updated in some meaningful way (so that the degeneracies of states actually does approach the "true" value), which is where the visits histogram enters into the picture. The visits histogram is a measure of how many states of energy \(E\) have been "visited" by the random walk. It makes sense, then, to use this histogram to determine at what point all of the energy states have been visited "equally", and thus some flatness criterion \(x\) is introduced, which will flag the histogram as "flat" if, for all energy states, the corresponding values of the histogram \(H(E)\) are within \(1-x\) of the average histogram value \(\langle H(E)\rangle\). Flatness is typically checked after every 10'000 proposed spin-flips.
+
+Once the graph is considered to be "flat", the modification factor is updated according to \(f_{i+1} = \sqrt{f_i}\) until some cutoff value has been reached, at which point the visits histogram should be reset to all zero visits (note that the set of degeneracies must not be reset) and the algorithm should repeat exactly as before. Wang and Landau recommend having the initial modification factor being \(f_{0} = e = 2.718\dots\) with a cutoff value equal to \(1+1E-8 = 1.00000001\), which corresponds to 27 different iterations of the algorithm (one iteration of the algorithm per value of \(f\)). After the cutoff has been reached and the degeneracies normalised, the partition function can be calculated according to equation  \ref{eqn:partition}. 
+
+It is worth noting that for very small values of temperature, the exponential functions in equation \ref{eqn:partition} can become incalculably large. Think, for example, of calculating the partition function for the \(L=6\) case at a temperature value of \(T=0.1\). At the extremes of the highest and lowest total energies, this effectively means trying to calculate \[\dots e^{\pm 2L^{2} / 0.1} = \dots e^{\pm 720}\]
+which far exceeds the "safely calculable" range of \(-150 \leq x \leq +150\). As a very imprecise and non-rigorous workaround, a suggestion would be to approximate the exponential functions as per the Taylor Series definition of 
+\begin{equation}
+    \exp(a) := \sum_{n=0}^{+\infty} \frac{a^{n}}{n!}
+    \label{eqn:exp Taylor Series}
+\end{equation}
+For this investigation, a twentieth-order correction was applied to any exponential outside of the above-mentioned safely calculable range (i.e low values of T combined with the highest or lowest values of E for the system in question), and in the output graphs any irregularity was attempted to be removed by automatically truncating the "non-smooth" sections of the graph and keeping only the "smooth" sections (this was done by looking at the average energy, and then setting the truncation point \(i\) to where \(E_{i} \leq E_{i + 1}\) and \(E_{i + 2} \leq E_{i + 3}\), so as to deter any false-positives from random fluctuations that could mometarily satisfy \(E_{i} \leq E_{i + 1}\)). Visually, this continual truncation presents itself as the region of interest (centred about the critical temperature \(T_c\)) moving closer to the left axis as the value of \(L\) is increased.
+
+\subsubsection{A Remark on Uncertainty}
+By now it should be evident that the driving force behind the Wang-Landau sampling method is the modification factor, \(f\). It is so powerful, in fact, that given a sufficient number of iterations before the program terminates (by making the cutoff sufficiently small), the corrected-for values of degeneracy it outputs for each allowed energy state fall within the error bars of a Type A error evaluation using 10 successive runs. Notice also the effects of the cutoff and how that correlates directly with both the accuracy and precision of the algorithm as a whole:
+
+\begin{figure}[h]
+\centering
+\subfloat[Subfigure 5 list of figures text][Cutoff = 1.1 (\(1+1E-1\))]{
+\includegraphics[width=0.4\textwidth]{L=4, repeat=10, cutoff=1.1.png}
+\label{fig:subfig5}}
+%\qquad
+\subfloat[Subfigure 6 list of figures text][Cutoff = 1.0001 (\(1+1E-4\))]{
+\includegraphics[width=0.4\textwidth]{L=4, repeat=10, cutoff=1.0001.png}
+\label{fig:subfig6}}
+\qquad
+\subfloat[Subfigure 7 list of figures text][Cutoff = 1.00000001 (\(1+1E-8\))]{
+\includegraphics[width=0.4\textwidth]{L=4, repeat=10, cutoff=1.00000001.png}
+\label{fig:subfig7}}
+%\qquad
+\subfloat[Subfigure 8 list of figures text][Zoom-in of (c) on most erroneous value \(g(32)\)]{
+\includegraphics[width=0.4\textwidth]{L=4, repeat=10, cutoff=1.00000001, zoomed in.png}
+\label{fig:subfig8}}
+\caption{Above are four figures of the corrected-for logarithms of degeneracies plotted as a function of the allowed energy states. The green graph corresponds to the graph with a Type A error evaluation, and the red graph without. Notice the very strong dependence on the cutoff value for accuracy, and also notice the "logarithmic parabola" shape that emerges.}
+\label{fig:type A non-justification}
+\end{figure}
+
+\subsubsection{Wang-Landau pseudo-code}
+Initialize Ising Grid of width even L\\
+\\
+Calculate allowed energy states of Ising Grid\\
+Initialize visits histogram with all 0 entries\\
+Initialize degeneracies array with all 1 entries\\
+\\
+While the modification factor f \(> 1 + 1E-8\):
+
+Calculate the energy of the entire system as \(E_{1}\)
+
+Choose a random dipole \(S(i,j)\)
+
+Perform a trial flip \(S(i,j) \rightarrow -S(i,j)\)
+
+Calculate the energy of the entire trial system as \(E_{2}\)
+
+Set probability to accept the flip as \(P = \textrm{min}\{\frac{g(E_{1})}{g(E_{2})}, 1\}\)
+
+Create a floating point number R in the range [0, 1)
+
+Accept flip only if \(P = 1\) or if \(R < P\)\\
+\\
+If the flip is accepted, update all values corresponding to \(E_{2}\), i.e.
+
+\(H(E_{2}) \rightarrow H(E_{2}) + 1\) and \(\ln{g(E_{2})} \rightarrow \ln{g(E_{2})} + \ln{f}\)\\
+\\
+If the flip is rejected, update all values corresponding to \(E_{1}\), i.e.
+
+\(H(E_{1}) \rightarrow H(E_{1}) + 1\) and \(\ln{g(E_{1})} \rightarrow \ln{g(E_{1})} + \ln{f}\)\\
+\\
+Once the histogram is "flat" (i.e. all \(H(E)\) values are within 1-x\% of the average \( H(E)\)):
+
+Reset the histogram by setting all entries to 0 again
+
+Update modification factor \(f \rightarrow \sqrt{f}\)\\
+\\
+Once the cutoff has been reached, normalise degeneracies using \(g_{1\textrm{, calculated}} and g_{1\textrm{, actual}} = 2\) and from that calculate the partition function\\
+\\
+With the partition function, calculate and plot relevant thermodynamic quantities
+
+\section{Results and Discussion}
+\subsection{Metropolis}
+Note that due to technical limitations, only models up to \(L = 12\) could have been reliably tested.
+
+For the Metropolis algorithm, three graphs are shown per run. These are respectively (a) the Average Total Energy \(\langle E\rangle\) of the system, (b) the Total Magnetisation \(M\) of the system, and (c) the Specific Heat Capacity \(C_{V}\) of the system. These thermodynamic quantities were calculated from the set of equations:
+\begin{equation}
+    \begin{split}
+        \langle E\rangle &= -\epsilon\sum_{\langle i,j\rangle} s_{i}\cdot s_{j}\\
+        M &= |\sum_{i = 1}^{N} s_{i}|\\
+        C_{V} &= \frac{\Delta \langle E\rangle}{\Delta T}
+    \end{split}
+\end{equation}
+
+All of this is demonstrated in figure \ref{fig:metropolis plots} below:
+
+\begin{figure}[h]
+\centering
+\subfloat[Subfigure 9 list of figures text][]{
+\includegraphics[width=0.5\textwidth]{Metropolis L=2.png}
+\label{fig:subfig9}}
+%\qquad
+\subfloat[Subfigure 10 list of figures text][]{
+\includegraphics[width=0.5\textwidth]{Metropolis L=4.png}
+\label{fig:subfig10}}
+\qquad
+\subfloat[Subfigure 11 list of figures text][]{
+\includegraphics[width=0.5\textwidth]{Metropolis L=8.png}
+\label{fig:subfig11}}
+%\qquad
+\subfloat[Subfigure 12 list of figures text][]{
+\includegraphics[width=0.5\textwidth]{Metropolis L=12.png}
+\label{fig:subfig12}}
+\caption{The average total energy, total magnetisation, and specific heat capacity - per dipole - of the L = 2, 4, 8, and 12 cases starting from the top left.}
+\label{fig:metropolis plots}
+\end{figure}
+
+Notice how the features of the plots change as the Ising grid increase in size: At \(L = 2\) the graphs have very large error bars, and very "slowly" with the phase transition spread out over a wider range of temperatures, At \(L = 8\), the error bars start to decrease and the phase transition becomes much more rapid and apparent. The specific heat capacity also starts to show some bump about the critical temperature point. At \(L = 12\), the features of the graph start to become very nicely visible. Error bars on the average energy are also incredibly small and the bump in the specific heat capacity is much more pronounced.
+
+Continuing on this this pattern to higher \(L\), the expected outcome is for the phase transition to occur more and more rapidly, with the error bars slowly vanishing and the peak of the specific heat capacity growing ever more prominent. It is expected that, as \(N \rightarrow +\infty\), the phase transition will be approach an instantaneous climb at \(T_c = 2.27 \epsilon / \textrm{k}\), with the specific heat capacity will approach a delta function about this same value of temperature.
+
+\subsection{Wang-Landau}
+Note that due to technical limitations, only models up to \(L = 8\) could have been reliably tested.
+
+For the Wang-Landau sampling method, four graphs are shown per run. These are (a) the Total Average Energy \(\langle E\rangle\) of the system, (b) the Free Energy \(F\) of the system, (c) the Specific Heat Capacity \(C_{V}\) of the system, and (d) the Total Entropy \(S\) of the system.
+
+Note that, for the entropy, we must first consider the Free Energy as:
+\begin{equation}
+    \begin{split}
+        F &= U - TS\\
+        \Rightarrow dF &= dU - d(TS)\\
+        &= d(TS - pV + \mu N) - TdS - SdT\\
+        &= TdS - pdV + \mu dN\\
+        &\textrm{Ising model always has constant N and V:}\\
+        \Rightarrow \frac{\partial F}{\partial T} |_{V, N} &= -S
+    \end{split}
+\end{equation}
+
+Thus, the thermodynamic quantities were calculated from the set of equations:
+\begin{equation}
+    \begin{split}
+        \langle E\rangle &= \frac{\Sigma E g(E) e^{-E/T}}{\Sigma g(E) e^{-E/T}} = \frac{\Sigma E g(E) e^{-E/T}}{Z}\\
+        F &= -T\ln\left(Z\right)\\
+        C &= \frac{\partial \langle E \rangle}{\partial T}\\
+        S &= -\frac{\partial F}{\partial T}
+    \end{split}
+\end{equation}
+
+This is demonstrated in figures \ref{fig:WL 4} to \ref{fig:WL 8}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{WL L=4 without irregularity.png}
+    \caption{}
+    \label{fig:WL 4}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{WL L=6 without irregularity.png}
+    \caption{}
+    \label{fig:WL 6}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{WL L=8 with less irregularity.png}
+    \caption{}
+    \label{fig:WL 8}
+\end{figure}
+
+Looking at these figures, it is clear that the results follow a similar trend to what was observed in the case of the metropolis algorithm: close to the critical value of \(T_{C} = 2.27 \epsilon / \textrm{k}\), there are noticeable changes in the thermodynamic properties of the Ising grid, and these changes become more and more abrupt and pronounced the bigger the width of the Ising grid becomes. 
+
+Given also that the graphs from the Wang-Landau sampling algorithm actually estimate the partititon function, the output graphs are smooth and continuous, allowing for much easier visual identification of these changes than for the metropolis algorithm.
+
+\section{Comparison - Wang-Landau vs. Metropolis}
+\subsection{Outputs}
+In terms of the graphs of the thermodynamic quantities of the ising grid, the Wang-Landau code visually depicts what is happening to the system that the Metropolis code, although it can be argued that without the uncertainty in the output plots of the Wang-Landau code, nothing can be said of how "true" these approximations are.
+
+\subsection{Computational Strain}
+In terms of computational strain, the Metropolis algorithm wins by a landslide. Not only does the code keep to a roughly constant time interval between iterations, but it also avoids the issue of "large" numbers that the Wang-Landau code has to deal with.
+
+\subsection{Code Complexity}
+Again, another easy victory for the Metropolis code. This code is very intuitive and easy to follow (since it involves rewarding high probability configurations by favouring them with the Boltzmann factor). There is also only one "instance" to keep track of, being the Ising grid - whereas in the Wang-Landau algorithm, three or even four different instances need to be kept track of (being first the Ising grid, second the visits histogram, third the set of degeneracies, and fourth is the set of allowed energies underlying both the histogram and the set of degeneracies).
+
+\subsection{Usefulness}
+This is unfortunately where the Metropolis code loses quite fiercely. Since the Wang-Landau code has access to the partition function once all is said and done, it can be argued that it also has access to "all of thermodynamics" (since almost all thermodynamics quantities are either directly or indirectly related to it). Another positive aspect in the favour of the Wang-Landau code is the fact that it does not have to compute several hundreds or even thousands of values for every temperature value - since the density of states is temperature-independent, simply having them and their corresponding energies will do.
+
+\section{Conclusion}
+By analysing the Ising model of dipoles with two well-known Monte Carlo simulations - being the Metropolis method and the Wang-Landau sampling methow - and by varying the size of the model, it has been shown that abrupt changes happen in the thermodynamic quantities about the critical temperature \(T_{c} = 2.27 \epsilon / \textrm{k}\)
+
+Considering the Metropolis algorithm, for a Type A evaluation of uncertainty in thermodynamic properties of the Ising grid, the nominal amount of representative samples per temperature value was determined to be 800. This was on the basis of balancing detail and relative "smoothness" in the plot with the computing time needed to run the algorithm completely.
+
+Considering the Wang-Landau algorithm, although it is more computationally complex and takes longer to run than the Metropolis algorithm, it becomes more and more useful when faced with determining a wider range of thermodynamic quantities over a vast range of temperatures. 
+
+Care must also be taken in the handling of the Wang-Landau code, as the numbers become incalculably large after a relatively short period of time, which can result in computational "infinities" in the code - effectively breaking the code unless dealt with properly.
+
+Finally, for the following criteria of the Wang-Landau code: \(f_{0} = e \simeq 2.718\dots\), \(\textrm{cutoff} = 1.00000001 = 1+1E-8\), and \(\textrm{flatness criterion } x = 90\%\), for "small" \(L\) the calculated values for the density of states (discrete case: degeneracies) falls within the error bars of a Type A evaluation of uncertainty for 10 successive repeats of the W-ang-Landau algorithm.
+
+\section{Github Repository for Code}
+
+https://github.com/ChristofJooste/PHY3-project
+
+\section{References}
+The references for the paper are \cite{PhysRevE.64.056101}, \cite{doi:10.1119/1.19116} and \cite{doi:10.1119/1.2839563}.
+Computer simulations: A window on the static and dynamic properties of simple spin Models (Shan-Ho Tsai and D.P. Landau).\\
+Determining the density of states for classical statistical models: A random walk algorithm to produce a flat histogram (Fuago Wang and D. P. Landau).\\
+Topic X- Statistical Mechanics Monte Carlo: The Ising Model (University of Cape Town Department of Physics)\\
+An Introduction to Thermal Physics (Daniel V. Schroeder)
+\end{document}
